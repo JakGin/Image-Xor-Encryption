@@ -1,7 +1,6 @@
 from PIL import Image
 import numpy as np
 from pathlib import Path
-import cv2
 
 
 IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp',
@@ -28,8 +27,7 @@ def cypher_images(directory: str) -> None:
     for i, (img_path, img, exif) in enumerate(images_data):
         img = xor(img, key)
         img = Image.fromarray(img)
-        img.info["exif"] = exif
-        img.save(img_path, format="PNG")
+        img.save(img_path, format="PNG", exif=exif)
         print(f"Image {i + 1}/{len(images_data)} cyphered")
     
     with open(key_path, "wb") as file:
@@ -54,8 +52,7 @@ def decypher_images(directory: str) -> None:
     for i, (img_path, img, exif) in enumerate(images_data):
         img = xor(img, key)
         img = Image.fromarray(img)
-        img.info["exif"] = exif
-        img.save(img_path)
+        img.save(img_path, exif=exif)
         print(f"Image {i + 1}/{len(images_data)} decyphered")
 
     Path(key_path).unlink()
@@ -66,7 +63,7 @@ def file_exists(file_path: str) -> bool:
     return file.exists()
 
 
-def get_images(directory: str) -> list[tuple[str, np.ndarray[np.uint8], dict[str, str]]]:
+def get_images(directory: str) -> list[tuple[str, np.ndarray[np.uint8], Image.Exif]]:
     """
     Retrieve image data from files in the specified directory.
 
@@ -74,11 +71,11 @@ def get_images(directory: str) -> list[tuple[str, np.ndarray[np.uint8], dict[str
         directory (str): The path to the directory containing image files.
 
     Returns:
-        list[tuple[str, np.ndarray[np.uint8], dict[str, str]]]: A list of tuples, 
+        list[tuple[str, np.ndarray[np.uint8], Image.Exif]]: A list of tuples, 
         each containing information about an image. Each tuple consists of:
             - The file path of the image (str).
             - The image data represented as a NumPy array of unsigned 8-bit integers (np.ndarray[np.uint8]).
-            - A dictionary containing the EXIF metadata of the image (dict[str, str]). 
+            - A dictionary containing the EXIF metadata of the image (Image.Exif). 
               If no EXIF data is available, the dictionary will be empty.
     """
     images_data = []
@@ -87,7 +84,7 @@ def get_images(directory: str) -> list[tuple[str, np.ndarray[np.uint8], dict[str
         if file.is_file():
             if file.suffix in IMAGE_EXTENSIONS:
                 image = Image.open(file)
-                exif = image._getexif()
+                exif = image.getexif()
                 if exif is None:
                     exif = {}
                 images_data.append((str(file), np.asarray(image), exif))
